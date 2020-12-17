@@ -12,7 +12,17 @@ import { fetchQuestions } from './API';
 import { shuffleArray } from './utils';
 import QuestionCard from './components/QuestionCard';
 
+import firebase from './firebase'
+
 function App() {
+  const messaging = firebase.messaging()
+  messaging.requestPermission().then(() => {
+    return messaging.getToken()
+  }).then((token) => {
+    console.log('token', token)
+  })
+
+
   const [noOfQuestions, setNoOfQuestions] = useState<number | number[]>(10)
   const [categoryId, setCategoryId] = useState<string>('anyCategory')
   const [difficulty, setDifficulty] = useState<DIFFICULTY>(DIFFICULTY.ANY)
@@ -29,6 +39,8 @@ function App() {
   const startQuiz = async () => {
     setQuizOver(false)
     setLoading(true)
+    setScore(0)
+    setCurrentQuestion(0)
 
     const response = await fetchQuestions(noOfQuestions, categoryId, difficulty, type)
 
@@ -48,14 +60,14 @@ function App() {
   const checkAnswer = (userAnswer: string) => {
     if (questions[currentQuestion].correctAnswer.toUpperCase() === userAnswer.toUpperCase()) {
       setScore(score + 1)
-      
+
     }
   }
 
   const handleNext = (setUserAnswer: (userAnswer: string) => void) => {
     setCurrentQuestion(currentQuestion + 1)
 
-    if(currentQuestion + 1 === questions.length) {
+    if (currentQuestion + 1 === questions.length) {
       setQuizOver(true)
     }
     else {
@@ -88,25 +100,30 @@ function App() {
                 loading ?
                   <LinearProgress />
                   :
-                  responseCode === 0 ?
-                    <QuestionCard
-                      question={questions[currentQuestion].question}
-                      correctAnswer={questions[currentQuestion].correctAnswer}
-                      options={questions[currentQuestion].options}
-                      noOfQuestions={noOfQuestions}
-                      currentQuestion={currentQuestion + 1}
-                      score={score}
-                      checkAnswer={checkAnswer}
-                      handleNext={handleNext}
-                    />
-                    :
-                    responseCode === 1 ?
-                      <Alert severity='error'>
-                        Could not return results. The API doesn't have enough questions for your query. (Ex. Asking for 50 Questions in a Category that only has 20.)
-                      </Alert>
+                  // !navigator.onLine ?
+                  //   <Alert severity='error'>
+                  //     Please make sure your internet connection is working to start the quiz
+                  //   </Alert>
+                  //   :
+                    responseCode === 0 ?
+                      <QuestionCard
+                        question={questions[currentQuestion].question}
+                        correctAnswer={questions[currentQuestion].correctAnswer}
+                        options={questions[currentQuestion].options}
+                        noOfQuestions={noOfQuestions}
+                        currentQuestion={currentQuestion + 1}
+                        score={score}
+                        checkAnswer={checkAnswer}
+                        handleNext={handleNext}
+                      />
                       :
-                      <Alert severity='error'>
-                        Error Please Reload The Page.
+                      responseCode === 1 ?
+                        <Alert severity='error'>
+                          Could not return results. The API doesn't have enough questions for your query. (Ex. Asking for 50 Questions in a Category that only has 20.)
+                      </Alert>
+                        :
+                        <Alert severity='error'>
+                          Error Please Reload The Page.
                       </Alert>
               }
             </CardContent>
